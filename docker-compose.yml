@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  nexus-api:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: nexus-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=nexus-db
+      - REDIS_HOST=nexus-redis
+    depends_on:
+      nexus-db:
+        condition: service_healthy
+      nexus-redis:
+        condition: service_started
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  nexus-db:
+    image: mysql:8.0
+    container_name: nexus-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: nexus_db
+      MYSQL_USER: nexus_user
+      MYSQL_PASSWORD: nexus_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - nexus-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  nexus-redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - nexus-redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  nexus-db-data:
+  nexus-redis-data:
