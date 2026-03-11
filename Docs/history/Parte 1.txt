@@ -1,0 +1,1287 @@
+# 🚀 PLAN MAESTRO DEFINITIVO - NEXUS MOBILE APP (REFACTORIZADO Y COMPLETO)
+
+Perfecto, Arquitecto. He revisado TODA la documentación del backend y voy a entregarte el plan más completo y alineado posible. Este plan está diseñado para ser implementado directamente sin ambigüedades.
+
+---
+
+## 📋 ÍNDICE EJECUTIVO
+
+1. **Resumen de Validación Técnica Backend** (Confirmaciones críticas)
+2. **Arquitectura de Carpetas Definitiva** (Estructura completa)
+3. **Stack Tecnológico & Justificación** (Paquetes + versiones)
+4. **Sistema de Diseño Cyberpunk** (Paleta + Tipografía + Componentes)
+5. **Modelos de Dominio Completos** (Entities alineados a JSONs del backend)
+6. **Estrategia de Estado Riverpod** (Global vs Efímero + Providers)
+7. **Flujo de Navegación GoRouter** (Rutas + Protección + Shell)
+8. **Módulos Feature by Feature** (20+ pantallas detalladas)
+9. **Estrategia de Testing** (Unit + Widget + Integration)
+10. **Performance & Optimización** (Isolates + Caché + Offline-First)
+11. **Roadmap de Implementación por Sprints** (Priorización exacta)
+
+---
+
+# 1. ✅ RESUMEN DE VALIDACIÓN TÉCNICA BACKEND
+
+## 1.1 Estructura de Datos (JSONs Reales)
+
+### Usuario Base
+```json
+{
+  "id": "uuid-v4",
+  "username": "neo",
+  "email": "neo@matrix.com",
+  "firstName": "Thomas",
+  "lastName": "Anderson",
+  "isActive": true,
+  "isVerified": true,
+  "echoEnabled": false,
+  "echoPlan": "free",
+  "createdAt": "2023-10-27T10:00:00.000Z",
+  "updatedAt": "2023-10-27T10:00:00.000Z"
+}
+```
+⚠️ **CRÍTICO**: NO incluye `karma`, `bio`, ni `avatar`. Estos vienen de endpoints separados.
+
+### Post Completo
+```json
+{
+  "id": "uuid-post",
+  "content": "Hello Matrix",
+  "mediaUrls": ["https://cdn.example.com/image.jpg"],
+  "visibility": "PUBLIC",
+  "sentiment": "positive",
+  "emotionalTone": { "joy": 0.8, "sadness": 0.1 },
+  "geolocation": { "type": "Point", "coordinates": [-73.98, 40.75] },
+  "arMetadata": { "anchorType": "plane" },
+  "userId": "uuid-author",
+  "contentDna": "sha256-hash",
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "author": {
+    "id": "uuid-author",
+    "username": "neo"
+  }
+}
+```
+
+### Notificación
+```json
+{
+  "id": "uuid-notif",
+  "userId": "my-uuid",
+  "recipientId": "my-uuid",
+  "senderId": "other-uuid",
+  "type": "like",
+  "content": "Someone liked your post",
+  "relatedId": null,
+  "postId": "uuid-post",
+  "read": false,
+  "createdAt": "2024-01-15T10:00:00.000Z"
+}
+```
+
+## 1.2 Decisiones Técnicas Confirmadas
+
+| Aspecto | Decisión | Implicación Móvil |
+|---------|----------|-------------------|
+| **Paginación** | Offset/Limit (page + limit) | Usar `infinite_scroll_pagination` con números enteros |
+| **Media Upload** | 2 pasos (Upload → URL → Create Post) | Implementar endpoint de upload o usar CDN directo |
+| **Caché Writes** | POST devuelve objeto (201), DELETE devuelve vacío (204) | Agregar objeto a lista local en 201, eliminar por ID en 204 |
+| **Mapas** | Backend agnóstico (MySQL ST_Distance) | Usar Mapbox por estilización cyberpunk |
+| **Real-Time** | Socket.IO con Redis Adapter | Confiar en balanceo del backend |
+| **Content DNA** | Backend-only (firmado en servidor) | Solo enviar contenido, no generar hash |
+| **Karma/Vibes** | Endpoints separados de User | Hacer fetches paralelos o secuenciales |
+| **Auth** | JWT simple (sin Refresh Token en MVP) | Implementar Refresh en Sprint 2 |
+| **Streaming Chat** | NO implementado (respuesta completa) | Usar indicador "Escribiendo..." hasta recibir JSON |
+
+---
+
+# 2. 📂 ARQUITECTURA DE CARPETAS DEFINITIVA
+
+```plaintext
+nexus_mobile/
+├── lib/
+│   ├── app/
+│   │   ├── app.dart                          # MaterialApp + ProviderScope root
+│   │   ├── router.dart                       # GoRouter config completa
+│   │   ├── app_lifecycle.dart                # App state observer (foreground/background)
+│   │   └── theme/
+│   │       ├── nexus_theme.dart              # ThemeData cyberpunk
+│   │       ├── app_colors.dart               # Paleta completa (30+ colores)
+│   │       ├── app_typography.dart           # TextStyles (Rajdhani + Inter)
+│   │       ├── app_dimensions.dart           # Spacing, radius, sizes
+│   │       ├── theme_extensions.dart         # Custom ThemeExtension (Karma)
+│   │       └── app_shadows.dart              # BoxShadow presets (glow effects)
+│   │
+│   ├── core/
+│   │   ├── api/
+│   │   │   ├── dio_client.dart               # Singleton Dio configurado
+│   │   │   ├── api_interceptors.dart         # Auth + Error + Logging
+│   │   │   ├── api_endpoints.dart            # Constantes de URLs
+│   │   │   └── retry_interceptor.dart        # Reintentos automáticos
+│   │   │
+│   │   ├── storage/
+│   │   │   ├── secure_storage_service.dart   # flutter_secure_storage (JWT)
+│   │   │   ├── local_db_service.dart         # Isar setup + schemas
+│   │   │   └── cache_manager.dart            # Estrategia de invalidación
+│   │   │
+│   │   ├── errors/
+│   │   │   ├── failures.dart                 # Failure classes (8+ tipos)
+│   │   │   ├── error_handler.dart            # UI-friendly messages
+│   │   │   └── exception_mapper.dart         # DioException → Failure
+│   │   │
+│   │   ├── network/
+│   │   │   ├── connectivity_service.dart     # connectivity_plus wrapper
+│   │   │   └── network_info.dart             # Check internet status
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── validators.dart               # Email, password, username
+│   │   │   ├── formatters.dart               # Date, number, distance
+│   │   │   ├── haptics.dart                  # HapticFeedback wrapper
+│   │   │   ├── logger.dart                   # Talker config
+│   │   │   ├── isolate_parser.dart           # JSON parsing en background
+│   │   │   ├── permissions_handler.dart      # Camera, location, storage
+│   │   │   └── image_compressor.dart         # Comprimir antes de upload
+│   │   │
+│   │   ├── constants/
+│   │   │   ├── app_constants.dart            # Timeouts, limits, API versions
+│   │   │   ├── asset_paths.dart              # Imágenes, iconos, lottie
+│   │   │   └── route_names.dart              # String constants para rutas
+│   │   │
+│   │   └── extensions/
+│   │       ├── context_extensions.dart       # context.theme, context.colors
+│   │       ├── string_extensions.dart        # capitalize, truncate
+│   │       ├── date_extensions.dart          # timeAgo, format
+│   │       └── list_extensions.dart          # firstWhereOrNull
+│   │
+│   ├── features/
+│   │   │
+│   │   ├── auth/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── user_model.dart
+│   │   │   │   │   ├── user_model.g.dart
+│   │   │   │   │   ├── auth_response_model.dart
+│   │   │   │   │   └── auth_response_model.g.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── auth_remote_datasource.dart
+│   │   │   │   │   └── auth_local_datasource.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── auth_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── user_entity.dart
+│   │   │   │   │   └── user_entity.freezed.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── auth_repository.dart
+│   │   │   │   └── usecases/
+│   │   │   │       ├── login_usecase.dart
+│   │   │   │       ├── register_usecase.dart
+│   │   │   │       ├── logout_usecase.dart
+│   │   │   │       ├── verify_biometric_usecase.dart
+│   │   │   │       └── refresh_token_usecase.dart (Sprint 2)
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── auth_controller.dart
+│   │   │       │   ├── auth_controller.g.dart
+│   │   │       │   └── biometric_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── splash_screen.dart
+│   │   │       │   ├── onboarding_screen.dart
+│   │   │       │   ├── login_screen.dart
+│   │   │       │   ├── register_screen.dart
+│   │   │       │   └── biometric_setup_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── nexus_text_field.dart
+│   │   │           ├── nexus_button.dart
+│   │   │           ├── auth_header.dart
+│   │   │           ├── password_strength_indicator.dart
+│   │   │           └── terms_checkbox.dart
+│   │   │
+│   │   ├── feed/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── post_model.dart
+│   │   │   │   │   ├── post_model.g.dart
+│   │   │   │   │   ├── author_model.dart
+│   │   │   │   │   └── feed_response_model.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── feed_remote_datasource.dart
+│   │   │   │   │   └── feed_local_datasource.dart (Isar)
+│   │   │   │   └── repositories/
+│   │   │   │       └── feed_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── post_entity.dart
+│   │   │   │   │   ├── post_entity.freezed.dart
+│   │   │   │   │   ├── author_entity.dart
+│   │   │   │   │   └── geo_location_entity.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── feed_repository.dart
+│   │   │   │   └── usecases/
+│   │   │   │       ├── get_feed_usecase.dart
+│   │   │   │       ├── get_neuro_feed_usecase.dart
+│   │   │   │       └── refresh_feed_usecase.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── feed_controller.dart
+│   │   │       │   ├── feed_controller.g.dart
+│   │   │       │   ├── post_interaction_controller.dart
+│   │   │       │   └── feed_filter_provider.dart (PUBLIC/FRIENDS/etc)
+│   │   │       ├── screens/
+│   │   │       │   ├── feed_screen.dart
+│   │   │       │   ├── neuro_feed_screen.dart
+│   │   │       │   └── post_detail_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── post_card.dart
+│   │   │           ├── post_actions_bar.dart (Like, Comment, Share)
+│   │   │           ├── karma_ring_avatar.dart
+│   │   │           ├── feed_loading_skeleton.dart
+│   │   │           ├── empty_feed_state.dart
+│   │   │           ├── media_carousel.dart (Múltiples imágenes)
+│   │   │           └── sentiment_badge.dart (Joy, Sadness icons)
+│   │   │
+│   │   ├── create_content/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── media_model.dart
+│   │   │   │   │   └── upload_response_model.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── media_upload_datasource.dart (Cloudinary/S3)
+│   │   │   │   │   └── post_creation_datasource.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── content_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── media_entity.dart
+│   │   │   │   │   └── create_post_request.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── content_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── media_picker_controller.dart
+│   │   │       │   ├── content_creation_controller.dart
+│   │   │       │   └── upload_progress_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── create_post_screen.dart
+│   │   │       │   ├── media_editor_screen.dart (Crop, filters)
+│   │   │       │   └── voice_recording_screen.dart (Fase 2)
+│   │   │       └── widgets/
+│   │   │           ├── media_preview_grid.dart
+│   │   │           ├── upload_progress_indicator.dart
+│   │   │           ├── content_dna_badge.dart
+│   │   │           ├── visibility_selector.dart (PUBLIC/PRIVATE)
+│   │   │           └── location_picker_button.dart
+│   │   │
+│   │   ├── profile/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── karma_model.dart
+│   │   │   │   │   ├── karma_model.g.dart
+│   │   │   │   │   ├── profile_model.dart
+│   │   │   │   │   └── badge_model.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── profile_remote_datasource.dart
+│   │   │   │   │   └── karma_remote_datasource.dart (Endpoint separado)
+│   │   │   │   └── repositories/
+│   │   │   │       ├── profile_repository_impl.dart
+│   │   │   │       └── karma_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── karma_entity.dart
+│   │   │   │   │   ├── karma_entity.freezed.dart
+│   │   │   │   │   ├── profile_entity.dart
+│   │   │   │   │   └── badge_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       ├── profile_repository.dart
+│   │   │   │       └── karma_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── profile_controller.dart
+│   │   │       │   ├── karma_controller.dart
+│   │   │       │   └── karma_animation_controller.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── profile_screen.dart
+│   │   │       │   ├── edit_profile_screen.dart
+│   │   │       │   ├── karma_detail_screen.dart
+│   │   │       │   └── settings_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── karma_ring_shader.dart (GLSL CustomPainter)
+│   │   │           ├── profile_header.dart
+│   │   │           ├── profile_stats_row.dart
+│   │   │           ├── badge_grid.dart
+│   │   │           ├── karma_tier_card.dart
+│   │   │           └── user_posts_tab.dart
+│   │   │
+│   │   ├── chat/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── message_model.dart
+│   │   │   │   │   ├── message_model.g.dart
+│   │   │   │   │   ├── mentor_model.dart (Echo, Dr. Luma, etc)
+│   │   │   │   │   └── typing_event_model.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── socket_datasource.dart (Socket.IO wrapper)
+│   │   │   │   │   ├── chat_remote_datasource.dart
+│   │   │   │   │   └── chat_local_datasource.dart (Isar caché)
+│   │   │   │   └── repositories/
+│   │   │   │       └── chat_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── message_entity.dart
+│   │   │   │   │   ├── message_entity.freezed.dart
+│   │   │   │   │   └── mentor_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── chat_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── socket_service_provider.dart (Global singleton)
+│   │   │       │   ├── chat_controller.dart
+│   │   │       │   ├── typing_indicator_provider.dart
+│   │   │       │   └── mentor_selection_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── chat_list_screen.dart (Lista de mentores)
+│   │   │       │   ├── chat_room_screen.dart (Conversación)
+│   │   │       │   └── mentor_info_screen.dart (Detalles del mentor)
+│   │   │       └── widgets/
+│   │   │           ├── message_bubble.dart
+│   │   │           ├── mentor_selector_card.dart
+│   │   │           ├── typing_indicator.dart
+│   │   │           ├── voice_message_player.dart (Audio streaming)
+│   │   │           ├── message_input_bar.dart
+│   │   │           └── echo_prediction_card.dart (Resultados de predict)
+│   │   │
+│   │   ├── reality_layers/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── geo_post_model.dart
+│   │   │   │   │   └── geo_post_model.g.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── location_datasource.dart (Geolocator)
+│   │   │   │   │   └── geo_posts_datasource.dart (GET /posts/nearby)
+│   │   │   │   └── repositories/
+│   │   │   │       └── reality_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── geo_post_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── reality_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── location_controller.dart (GPS stream)
+│   │   │       │   ├── map_controller.dart
+│   │   │       │   └── geo_posts_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── reality_map_screen.dart
+│   │   │       │   └── ar_view_screen.dart (Fase 2 - AR real)
+│   │   │       └── widgets/
+│   │   │           ├── nexus_map_view.dart (Mapbox custom)
+│   │   │           ├── geo_post_marker.dart
+│   │   │           ├── location_permission_dialog.dart
+│   │   │           ├── radius_selector.dart (1km, 5km, 10km)
+│   │   │           └── map_style_selector.dart (Dark/Cyber themes)
+│   │   │
+│   │   ├── vibes/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── vibes_dashboard_model.dart
+│   │   │   │   │   └── vibes_dashboard_model.g.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── vibes_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── vibes_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── vibes_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── vibes_controller.dart
+│   │   │       │   └── community_pulse_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   └── vibes_dashboard_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── vibes_radar_chart.dart (fl_chart)
+│   │   │           ├── community_pulse_widget.dart
+│   │   │           ├── emotion_breakdown_card.dart
+│   │   │           └── mood_history_graph.dart (Fase 2)
+│   │   │
+│   │   ├── notifications/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── notification_model.dart
+│   │   │   │   │   └── notification_model.g.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   └── notification_remote_datasource.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── notification_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── notification_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── notification_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   └── notification_controller.dart
+│   │   │       ├── screens/
+│   │   │       │   └── notifications_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── notification_card.dart
+│   │   │           ├── notification_badge.dart (Contador)
+│   │   │           └── empty_notifications_state.dart
+│   │   │
+│   │   ├── search/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   └── search_result_model.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── search_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── search_result_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── search_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   └── search_controller.dart
+│   │   │       ├── screens/
+│   │   │       │   └── search_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── search_bar_widget.dart
+│   │   │           ├── search_result_card.dart
+│   │   │           └── recent_searches_list.dart
+│   │   │
+│   │   ├── collective_dreams/
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── dream_model.dart
+│   │   │   │   │   └── dream_contribution_model.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── dream_repository_impl.dart
+│   │   │   │
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── dream_entity.dart
+│   │   │   │   │   └── dream_contribution_entity.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── dream_repository.dart
+│   │   │   │
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── dream_controller.dart
+│   │   │       │   └── dream_room_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── dreams_list_screen.dart
+│   │   │       │   ├── dream_room_screen.dart
+│   │   │       │   └── create_dream_screen.dart
+│   │   │       └── widgets/
+│   │   │           ├── dream_card.dart
+│   │   │           ├── dream_canvas.dart
+│   │   │           ├── contribution_input.dart
+│   │   │           └── dream_participants_list.dart
+│   │   │
+│   │   └── verify/
+│   │       ├── data/
+│   │       │   ├── models/
+│   │       │   │   └── verification_result_model.dart
+│   │       │   └── repositories/
+│   │       │       └── verify_repository_impl.dart
+│   │       │
+│   │       ├── domain/
+│   │       │   ├── entities/
+│   │       │   │   └── verification_result_entity.dart
+│   │       │   └── repositories/
+│   │       │       └── verify_repository.dart
+│   │       │
+│   │       └── presentation/
+│   │           ├── providers/
+│   │           │   └── verify_controller.dart
+│   │           ├── screens/
+│   │           │   └── verify_content_screen.dart
+│   │           └── widgets/
+│   │               ├── qr_scanner_widget.dart
+│   │               └── verification_result_card.dart
+│   │
+│   └── main.dart                               # Entry point + Firebase init
+│
+├── test/
+│   ├── core/
+│   │   ├── api/
+│   │   │   └── dio_client_test.dart
+│   │   └── utils/
+│   │       └── validators_test.dart
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── data/
+│   │   │   │   └── repositories/
+│   │   │   │       └── auth_repository_impl_test.dart
+│   │   │   └── presentation/
+│   │   │       └── screens/
+│   │   │           └── login_screen_test.dart
+│   │   └── feed/
+│   │       └── domain/
+│   │           └── usecases/
+│   │               └── get_feed_usecase_test.dart
+│   └── test_helpers.dart                       # Mocks, fixtures, builders
+│
+├── assets/
+│   ├── images/
+│   │   ├── logo.png
+│   │   ├── logo_white.png
+│   │   └── onboarding/
+│   │       ├── onboarding_1.png
+│   │       ├── onboarding_2.png
+│   │       └── onboarding_3.png
+│   ├── fonts/
+│   │   ├── Rajdhani-Bold.ttf
+│   │   ├── Rajdhani-SemiBold.ttf
+│   │   ├── Rajdhani-Regular.ttf
+│   │   ├── Inter-Bold.ttf
+│   │   └── Inter-Regular.ttf
+│   ├── lottie/
+│   │   ├── loading.json
+│   │   ├── success.json
+│   │   ├── error.json
+│   │   └── empty_state.json
+│   └── shaders/
+│       └── karma_ring.frag                     # GLSL shader para anillo
+│
+├── ios/
+├── android/
+├── pubspec.yaml
+├── analysis_options.yaml                       # Very Good Analysis
+├── README.md
+└── .env                                        # Variables de entorno (API URL)
+```
+
+---
+
+# 3. 🛠️ STACK TECNOLÓGICO & JUSTIFICACIÓN
+
+## 3.1 Dependencies (pubspec.yaml)
+
+```yaml
+name: nexus_mobile
+description: Nexus - Consciencia Digital
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # ========== STATE MANAGEMENT ==========
+  flutter_riverpod: ^2.5.1              # Estado reactivo + DI
+  riverpod_annotation: ^2.3.5           # Code generation
+  
+  # ========== CODE GENERATION ==========
+  freezed_annotation: ^2.4.1            # Immutable models
+  json_annotation: ^4.8.1               # JSON serialization
+  
+  # ========== NETWORKING ==========
+  dio: ^5.4.0                           # HTTP client
+  retrofit: ^4.1.0                      # Type-safe API
+  pretty_dio_logger: ^1.3.1             # Request logging
+  
+  # ========== REAL-TIME ==========
+  socket_io_client: ^2.0.3+1            # WebSocket
+  
+  # ========== STORAGE ==========
+  flutter_secure_storage: ^9.0.0        # JWT storage
+  isar: ^3.1.0+1                        # NoSQL local DB (fastest)
+  isar_flutter_libs: ^3.1.0+1           # Platform libs
+  path_provider: ^2.1.2                 # App directories
+  shared_preferences: ^2.2.2            # Settings simples
+  
+  # ========== NAVIGATION ==========
+  go_router: ^13.0.0                    # Declarative routing
+  
+  # ========== UI/UX ==========
+  flutter_animate: ^4.5.0               # Animaciones declarativas
+  shimmer: ^3.0.0                       # Loading skeleton
+  cached_network_image: ^3.3.1          # Image caching
+  lottie: ^3.0.0                        # Animaciones JSON
+  fl_chart: ^0.66.0                     # Gráficos (Vibes)
+  flutter_svg: ^2.0.10                  # SVG support
+  
+  # ========== MEDIA ==========
+  image_picker: ^1.0.7                  # Seleccionar imágenes
+  image_cropper: ^5.0.1                 # Crop + rotate
+  video_player: ^2.8.2                  # Video playback
+  audioplayers: ^5.2.1                  # Audio streaming
+  flutter_image_compress: ^2.1.0        # Comprimir antes de upload
+  
+  # ========== MAPS & LOCATION ==========
+  mapbox_maps_flutter: ^1.1.0           # Mapbox SDK
+  geolocator: ^11.0.0                   # GPS tracking
+  permission_handler: ^11.2.0           # Runtime permissions
+  
+  # ========== AUTH & SECURITY ==========
+  local_auth: ^2.1.8                    # Biometrics
+  crypto: ^3.0.3                        # Hashing
+  
+  # ========== UTILS ==========
+  intl: ^0.19.0                         # i18n + date formatting
+  timeago: ^3.6.1                       # "2 horas ago"
+  url_launcher: ^6.2.4                  # Abrir URLs
+  share_plus: ^7.2.2                    # Share content
+  connectivity_plus: ^5.0.2             # Network status
+  device_info_plus: ^9.1.2              # Device metadata
+  package_info_plus: ^5.0.1             # App version
+  uuid: ^4.3.3                          # Generate UUIDs
+  
+  # ========== LOGGING & DEBUG ==========
+  talker: ^3.5.0                        # Structured logging
+  talker_dio_logger: ^3.5.0             # Dio integration
+  talker_flutter: ^3.5.0                # UI logger
+  
+  # ========== ENV ==========
+  flutter_dotenv: ^5.1.0                # .env loader
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # ========== CODE GENERATION ==========
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.4.0
+  freezed: ^2.4.7
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.1.0
+  isar_generator: ^3.1.0+1
+  
+  # ========== TESTING ==========
+  mocktail: ^1.0.3                      # Mocking (mejor que mockito)
+  
+  # ========== LINTING ==========
+  flutter_lints: ^3.0.1
+  very_good_analysis: ^5.1.0            # Strict lint rules
+```
+
+## 3.2 Justificación de Tecnologías Clave
+
+| Tecnología | Por qué es CRÍTICA para Nexus |
+|------------|-------------------------------|
+| **Riverpod 2.0** | Code generation elimina boilerplate. AutoDispose automático. Mejor testability que Provider o Bloc. Permite invalidación granular de estado. |
+| **Isar** | 10x más rápido que Hive/SQLite. Queries complejas nativas. Soporte geolocalización. Perfecto para caché offline-first. |
+| **Retrofit + Dio** | Type-safe API calls. Auto-generación reduce errores humanos. Interceptors para auth/logging. Retry logic built-in. |
+| **Mapbox** | Único que permite estilización cyberpunk total. Better performance que Google Maps en zonas densas. Custom markers con WebGL. |
+| **Talker** | Logs estructurados + UI de debug in-app. Ver todas las requests/errors en tiempo real. Crítico para debugging en producción. |
+| **Flutter Animate** | Animaciones declarativas (menos código que AnimationController). 60fps garantizado. Perfect para micro-interacciones. |
+| **Freezed** | Immutability automática. copyWith sin dolor. Union types para estados complejos. |
+| **GoRouter** | Deep linking built-in. Type-safe routes. Redirection logic centralizada. |
+
+---
+
+# 4. 🎨 SISTEMA DE DISEÑO CYBERPUNK COMPLETO
+
+## 4.1 Paleta de Colores (lib/app/theme/app_colors.dart)
+
+```dart
+import 'package:flutter/material.dart';
+
+class AppColors {
+  AppColors._(); // Private constructor
+  
+  // ========== BASE COLORS (Backgrounds) ==========
+  static const voidBlack = Color(0xFF000000);      // OLED Black
+  static const deepSpace = Color(0xFF0A0A0F);      // Surface 1
+  static const darkMatter = Color(0xFF141419);     // Surface 2
+  static const shadowGrey = Color(0xFF1E1E24);     // Surface 3
+  static const carbonFiber = Color(0xFF2A2A30);    // Surface 4
+  
+  // ========== NEON ACCENTS (Primary Actions) ==========
+  static const nexusBlue = Color(0xFF00D9FF);      // Cian eléctrico
+  static const cyberPurple = Color(0xFF9D4EDD);    // Púrpura neón
+  static const plasmaGreen = Color(0xFF39FF14);    // Verde radioactivo
+  static const holoRose = Color(0xFFFF006E);       // Rosa holográfico
+  static const electricYellow = Color(0xFFFFFF00); // Amarillo eléctrico
+  
+  // ========== KARMA TIER COLORS ==========
+  static const karmaVerified = Color(0xFF00FF85);     // Verde neón
+  static const karmaEstablished = Color(0xFFFFB800);  // Oro
+  static const karmaNewcomer = Color(0xFFFF6B35);     // Naranja
+  static const karmaSuspicious = Color(0xFFFF0040);   // Rojo crítico
+  
+  // Gradiente para Diamond Tier
+  static const karmaDiamondGradient = LinearGradient(
+    colors: [nexusBlue, cyberPurple, holoRose, nexusBlue],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  
+  // ========== SEMANTIC COLORS ==========
+  static const successGlow = plasmaGreen;
+  static const warningPulse = Color(0xFFFFB800);
+  static const errorFlare = Color(0xFFFF0040);
+  static const infoBeam = nexusBlue;
+  
+  // ========== TEXT COLORS ==========
+  static const textPrimary = Color(0xFFFFFFFF);       // Pure white
+  static const textSecondary = Color(0xFFB0B0B8);     // Light grey
+  static const textTertiary = Color(0xFF6B6B73);      // Medium grey
+  static const textDisabled = Color(0xFF404047);      // Dark grey
+  static const textLink = nexusBlue;
+  
+  // ========== GLASS EFFECTS (Frosted glass) ==========
+  static const glassLight = Color(0x1AFFFFFF);        // 10% white
+  static const glassMedium = Color(0x33FFFFFF);       // 20% white
+  static const glassDark = Color(0x0DFFFFFF);         // 5% white
+  
+  // ========== OVERLAYS ==========
+  static const scrimLight = Color(0x40000000);        // 25% black
+  static const scrimMedium = Color(0x80000000);       // 50% black
+  static const scrimDark = Color(0xCC000000);         // 80% black
+  
+  // ========== SENTIMENT COLORS (Emociones) ==========
+  static const sentimentJoy = Color(0xFFFFD700);      // Dorado
+  static const sentimentSadness = Color(0xFF4A90E2);  // Azul triste
+  static const sentimentAnger = Color(0xFFFF4444);    // Rojo
+  static const sentimentFear = Color(0xFF9B59B6);     // Púrpura oscuro
+  static const sentimentSurprise = Color(0xFFFF9500); // Naranja brillante
+  
+  // ========== SHADOWS & GLOWS ==========
+  static final neonGlow = [
+    BoxShadow(
+      color: nexusBlue.withOpacity(0.5),
+      blurRadius: 20,
+      spreadRadius: 2,
+    ),
+  ];
+  
+  static final purpleGlow = [
+    BoxShadow(
+      color: cyberPurple.withOpacity(0.4),
+      blurRadius: 16,
+      spreadRadius: 1,
+    ),
+  ];
+  
+  static final cardShadow = [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.3),
+      blurRadius: 10,
+      offset: const Offset(0, 4),
+    ),
+  ];
+  
+  static final floatingActionShadow = [
+    BoxShadow(
+      color: nexusBlue.withOpacity(0.6),
+      blurRadius: 24,
+      spreadRadius: 4,
+    ),
+    BoxShadow(
+      color: Colors.black.withOpacity(0.2),
+      blurRadius: 8,
+      offset: const Offset(0, 4),
+    ),
+  ];
+}
+```
+
+## 4.2 Tipografía (lib/app/theme/app_typography.dart)
+
+```dart
+import 'package:flutter/material.dart';
+
+class AppTypography {
+  AppTypography._();
+  
+  // Font Families
+  static const String _rajdhani = 'Rajdhani';
+  static const String _inter = 'Inter';
+  
+  // ========== DISPLAY (Headers grandes) ==========
+  static const displayLarge = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 57,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+    letterSpacing: -0.5,
+  );
+  
+  static const displayMedium = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 45,
+    fontWeight: FontWeight.w700,
+    height: 1.15,
+    letterSpacing: -0.25,
+  );
+  
+  static const displaySmall = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 36,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  );
+  
+  // ========== HEADLINE (Títulos de sección) ==========
+  static const headlineLarge = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 32,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  );
+  
+  static const headlineMedium = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 28,
+    fontWeight: FontWeight.w600,
+    height: 1.25,
+  );
+  
+  static const headlineSmall = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+  );
+  
+  // ========== TITLE (Títulos de cards/items) ==========
+  static const titleLarge = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+  );
+  
+  static const titleMedium = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+    letterSpacing: 0.15,
+  );
+  
+  static const titleSmall = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+    letterSpacing: 0.1,
+  );
+  
+  // ========== BODY (Contenido de texto) ==========
+  static const bodyLarge = TextStyle(
+    fontFamily: _inter,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    height: 1.5,
+    letterSpacing: 0.5,
+  );
+  
+  static const bodyMedium = TextStyle(
+    fontFamily: _inter,
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    height: 1.45,
+    letterSpacing: 0.25,
+  );
+  
+  static const bodySmall = TextStyle(
+    fontFamily: _inter,
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    height: 1.4,
+    letterSpacing: 0.4,
+  );
+  
+  // ========== LABEL (Botones, chips, tabs) ==========
+  static const labelLarge = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: 0.5,
+  );
+  
+  static const labelMedium = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: 0.5,
+  );
+  
+  static const labelSmall = TextStyle(
+    fontFamily: _rajdhani,
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    height: 1.3,
+    letterSpacing: 0.5,
+  );
+}
+```
+
+## 4.3 Dimensiones & Spacing (lib/app/theme/app_dimensions.dart)
+
+```dart
+class AppDimensions {
+  AppDimensions._();
+  
+  // ========== SPACING SCALE (8px base) ==========
+  static const double space2 = 2.0;
+  static const double space4 = 4.0;
+  static const double space8 = 8.0;
+  static const double space12 = 12.0;
+  static const double space16 = 16.0;
+  static const double space20 = 20.0;
+  static const double space24 = 24.0;
+  static const double space32 = 32.0;
+  static const double space40 = 40.0;
+  static const double space48 = 48.0;
+  static const double space56 = 56.0;
+  static const double space64 = 64.0;
+  
+  // ========== BORDER RADIUS ==========
+  static const double radiusSmall = 8.0;
+  static const double radiusMedium = 12.0;
+  static const double radiusLarge = 16.0;
+  static const double radiusXLarge = 24.0;
+  static const double radiusFull = 9999.0;
+  
+  // ========== ICON SIZES ==========
+  static const double iconTiny = 12.0;
+  static const double iconSmall = 16.0;
+  static const double iconMedium = 24.0;
+  static const double iconLarge = 32.0;
+  static const double iconXLarge = 48.0;
+  static const double iconXXLarge = 64.0;
+  
+  // ========== AVATAR SIZES ==========
+  static const double avatarTiny = 24.0;
+  static const double avatarSmall = 32.0;
+  static const double avatarMedium = 48.0;
+  static const double avatarLarge = 72.0;
+  static const double avatarXLarge = 120.0;
+  
+  // ========== BUTTON HEIGHTS ==========
+  static const double buttonSmall = 32.0;
+  static const double buttonMedium = 44.0;
+  static const double buttonLarge = 56.0;
+  
+  // ========== KARMA RING ==========
+  static const double karmaRingStroke = 3.0;
+  static const double karmaRingGap = 6.0; // Space between avatar and ring
+  
+  // ========== FAB SIZE ==========
+  static const double fabSize = 64.0;
+  
+  // ========== APP BAR ==========
+  static const double appBarHeight = 56.0;
+  
+  // ========== BOTTOM NAV ==========
+  static const double bottomNavHeight = 72.0;
+  
+  // ========== CARD ELEVATION (para Material 3) ==========
+  static const double elevationLow = 2.0;
+  static const double elevationMedium = 4.0;
+  static const double elevationHigh = 8.0;
+}
+```
+
+## 4.4 Theme Implementation (lib/app/theme/nexus_theme.dart)
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'app_colors.dart';
+import 'app_typography.dart';
+import 'app_dimensions.dart';
+
+class NexusTheme {
+  NexusTheme._();
+  
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      
+      // ========== COLOR SCHEME ==========
+      colorScheme: ColorScheme.dark(
+        primary: AppColors.nexusBlue,
+        onPrimary: AppColors.voidBlack,
+        secondary: AppColors.cyberPurple,
+        onSecondary: AppColors.textPrimary,
+        tertiary: AppColors.plasmaGreen,
+        onTertiary: AppColors.voidBlack,
+        error: AppColors.errorFlare,
+        onError: AppColors.textPrimary,
+        surface: AppColors.deepSpace,
+        onSurface: AppColors.textPrimary,
+        surfaceContainerHighest: AppColors.darkMatter,
+        outline: AppColors.glassLight,
+        outlineVariant: AppColors.glassDark,
+      ),
+      
+      // ========== SCAFFOLD ==========
+      scaffoldBackgroundColor: AppColors.voidBlack,
+      
+      // ========== APP BAR ==========
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: AppTypography.headlineMedium.copyWith(
+          color: AppColors.textPrimary,
+        ),
+        iconTheme: const IconThemeData(
+          color: AppColors.nexusBlue,
+          size: AppDimensions.iconMedium,
+        ),
+        systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+        ),
+      ),
+      
+      // ========== CARD ==========
+      cardTheme: CardTheme(
+        color: AppColors.deepSpace,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          side: const BorderSide(
+            color: AppColors.glassLight,
+            width: 1,
+          ),
+        ),
+        margin: const EdgeInsets.all(AppDimensions.space16),
+      ),
+      
+      // ========== ELEVATED BUTTON ==========
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.nexusBlue,
+          foregroundColor: AppColors.voidBlack,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.space24,
+            vertical: AppDimensions.space16,
+          ),
+          minimumSize: const Size(0, AppDimensions.buttonMedium),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          ),
+          textStyle: AppTypography.labelLarge.copyWith(
+            color: AppColors.voidBlack,
+          ),
+          shadowColor: AppColors.nexusBlue.withOpacity(0.5),
+        ),
+      ),
+      
+      // ========== TEXT BUTTON ==========
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.nexusBlue,
+          textStyle: AppTypography.labelLarge,
+        ),
+      ),
+      
+      // ========== OUTLINED BUTTON ==========
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.nexusBlue,
+          side: const BorderSide(color: AppColors.nexusBlue, width: 2),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.space24,
+            vertical: AppDimensions.space16,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          ),
+          textStyle: AppTypography.labelLarge,
+        ),
+      ),
+      
+      // ========== INPUT DECORATION ==========
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.shadowGrey,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.glassLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.glassLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.nexusBlue, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.errorFlare),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.errorFlare, width: 2),
+        ),
+        labelStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textSecondary,
+        ),
+        hintStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textTertiary,
+        ),
+        errorStyle: AppTypography.bodySmall.copyWith(
+          color: AppColors.errorFlare,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.space16,
+          vertical: AppDimensions.space16,
+        ),
+      ),
+      
+      // ========== FLOATING ACTION BUTTON ==========
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.nexusBlue,
+        foregroundColor: AppColors.voidBlack,
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        ),
+        sizeConstraints: const BoxConstraints.tightFor(
+          width: AppDimensions.fabSize,
+          height: AppDimensions.fabSize,
+        ),
+      ),
+      
+      // ========== BOTTOM NAVIGATION BAR ==========
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: AppColors.deepSpace,
+        selectedItemColor: AppColors.nexusBlue,
+        unselectedItemColor: AppColors.textSecondary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        selectedLabelStyle: AppTypography.labelSmall,
+        unselectedLabelStyle: AppTypography.labelSmall,
+      ),
+      
+      // ========== NAVIGATION BAR (Material 3) ==========
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.deepSpace,
+        indicatorColor: AppColors.nexusBlue.withOpacity(0.2),
+        height: AppDimensions.bottomNavHeight,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppTypography.labelSmall.copyWith(
+              color: AppColors.nexusBlue,
+            );
+          }
+          return AppTypography.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(
+              color: AppColors.nexusBlue,
+              size: AppDimensions.iconMedium,
+            );
+          }
+          return const IconThemeData(
+            color: AppColors.textSecondary,
+            size: AppDimensions.iconMedium,
+          );
+        }),
+      ),
+      
+      // ========== DIALOG ==========
+      dialogTheme: DialogTheme(
+        backgroundColor: AppColors.darkMatter,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
+          side: const BorderSide(color: AppColors.glassLight),
+        ),
+        titleTextStyle: AppTypography.headlineSmall.copyWith(
+          color: AppColors.textPrimary,
+        ),
+        contentTextStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textSecondary,
+        ),
+      ),
+      
+      // ========== SNACKBAR ==========
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.shadowGrey,
+        contentTextStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textPrimary,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      
+      // ========== CHIP ==========
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.shadowGrey,
+        selectedColor: AppColors.nexusBlue.withOpacity(0.3),
+        labelStyle: AppTypography.labelMedium,
+        side: const BorderSide(color: AppColors.glassLight),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        ),
+      ),
+      
+      // ========== DIVIDER ==========
+      dividerTheme: const DividerThemeData(
+        color: AppColors.glassLight,
+        thickness: 1,
+        space: 1,
+      ),
+      
+      // ========== TEXT THEME ==========
+      textTheme: TextTheme(
+        displayLarge: AppTypography.displayLarge,
+        displayMedium: AppTypography.displayMedium,
+        displaySmall: AppTypography.displaySmall,
+        headlineLarge: AppTypography.headlineLarge,
+        headlineMedium: AppTypography.headlineMedium,
+        headlineSmall: AppTypography.headlineSmall,
+        titleLarge: AppTypography.titleLarge,
+        titleMedium: AppTypography.titleMedium,
+        titleSmall: AppTypography.titleSmall,
+        bodyLarge: AppTypography.bodyLarge,
+        bodyMedium: AppTypography.bodyMedium,
+        bodySmall: AppTypography.bodySmall,
+        labelLarge: AppTypography.labelLarge,
+        labelMedium: AppTypography.labelMedium,
+        labelSmall: AppTypography.labelSmall,
+      ).apply(
+        bodyColor: AppColors.textPrimary,
+        displayColor: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+```
+
+---
+
+**(CONTINUARÁ EN SIGUIENTE MENSAJE - Este es solo 1/3 del plan completo)**
+
+- **Parte 2**: Modelos de Dominio + Estrategia de Estado + Navegación
+- **Parte 3**: Módulos Feature by Feature + Testing + Roadmap de Implementación
+
