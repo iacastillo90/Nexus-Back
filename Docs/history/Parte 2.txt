@@ -1,0 +1,1639 @@
+# ðŸš€ PLAN MAESTRO DEFINITIVO - NEXUS MOBILE APP (PARTE 2)
+
+---
+
+# 5. ðŸ"¦ MODELOS DE DOMINIO COMPLETOS
+
+## 5.1 Auth Module - Entities
+
+### UserEntity (lib/features/auth/domain/entities/user_entity.dart)
+
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'user_entity.freezed.dart';
+
+@freezed
+class UserEntity with _$UserEntity {
+  const factory UserEntity({
+    required String id,
+    required String username,
+    required String email,
+    String? firstName,
+    String? lastName,
+    required bool isActive,
+    required bool isVerified,
+    required bool echoEnabled,
+    @Default('free') String echoPlan, // 'free', 'premium', 'creator'
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _UserEntity;
+  
+  const UserEntity._();
+  
+  // Helpers
+  String get displayName {
+    if (firstName != null && lastName != null) {
+      return '$firstName $lastName';
+    }
+    return username;
+  }
+  
+  String get initials {
+    if (firstName != null && lastName != null) {
+      return '${firstName![0]}${lastName![0]}'.toUpperCase();
+    }
+    return username.substring(0, 2).toUpperCase();
+  }
+  
+  bool get isPremium => echoPlan == 'premium' || echoPlan == 'creator';
+  bool get isCreator => echoPlan == 'creator';
+}
+```
+
+### AuthResponseEntity (lib/features/auth/domain/entities/auth_response_entity.dart)
+
+```dart
+@freezed
+class AuthResponseEntity with _$AuthResponseEntity {
+  const factory AuthResponseEntity({
+    required String token,
+    required UserEntity user,
+    String? refreshToken, // Fase 2
+  }) = _AuthResponseEntity;
+}
+```
+
+---
+
+## 5.2 Feed Module - Entities
+
+### PostEntity (lib/features/feed/domain/entities/post_entity.dart)
+
+```dart
+@freezed
+class PostEntity with _$PostEntity {
+  const factory PostEntity({
+    required String id,
+    required String content,
+    @Default([]) List<String> mediaUrls,
+    @Default('PUBLIC') String visibility, // 'PUBLIC', 'FRIENDS', 'PRIVATE'
+    required String sentiment, // 'positive', 'negative', 'neutral'
+    @Default({}) Map<String, double> emotionalTone, // {'joy': 0.8, 'sadness': 0.1}
+    GeoLocationEntity? geolocation,
+    Map<String, dynamic>? arMetadata,
+    required String userId,
+    required String contentDna,
+    required DateTime createdAt,
+    required AuthorEntity author,
+    @Default(0) int likeCount,
+    @Default(0) int commentCount,
+    @Default(0) int shareCount,
+    @Default(false) bool isLiked, // Estado local del usuario actual
+    @Default(false) bool isBookmarked,
+  }) = _PostEntity;
+  
+  const PostEntity._();
+  
+  // Helpers
+  bool get hasMedia => mediaUrls.isNotEmpty;
+  bool get hasLocation => geolocation != null;
+  bool get isVerified => contentDna.isNotEmpty;
+  
+  String get primaryEmotion {
+    if (emotionalTone.isEmpty) return 'neutral';
+    return emotionalTone.entries
+        .reduce((a, b) => a.value > b.value ? a : b)
+        .key;
+  }
+  
+  Color get sentimentColor {
+    switch (sentiment) {
+      case 'positive':
+        return AppColors.successGlow;
+      case 'negative':
+        return AppColors.errorFlare;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+}
+```
+
+### GeoLocationEntity (lib/features/feed/domain/entities/geo_location_entity.dart)
+
+```dart
+@freezed
+class GeoLocationEntity with _$GeoLocationEntity {
+  const factory GeoLocationEntity({
+    @Default('Point') String type,
+    required List<double> coordinates, // [longitude, latitude]
+  }) = _GeoLocationEntity;
+  
+  const GeoLocationEntity._();
+  
+  double get longitude => coordinates[0];
+  double get latitude => coordinates[1];
+}
+```
+
+### AuthorEntity (lib/features/feed/domain/entities/author_entity.dart)
+
+```dart
+@freezed
+class AuthorEntity with _$AuthorEntity {
+  const factory AuthorEntity({
+    required String id,
+    required String username,
+    String? avatarUrl,
+    KarmaTier? karmaTier,
+    @Default(false) bool isFollowing, // Estado local
+  }) = _AuthorEntity;
+}
+```
+
+---
+
+## 5.3 Profile Module - Entities
+
+### KarmaEntity (lib/features/profile/domain/entities/karma_entity.dart)
+
+```dart
+@freezed
+class KarmaEntity with _$KarmaEntity {
+  const factory KarmaEntity({
+    required int score,
+    required KarmaTier tier,
+    required int rank,
+    required DateTime lastUpdated,
+    @Default([]) List<KarmaBreakdownEntity> breakdown,
+  }) = _KarmaEntity;
+  
+  const KarmaEntity._();
+  
+  String get tierName => tier.displayName;
+  Color get tierColor => tier.color;
+  String get tierDescription => tier.description;
+}
+
+enum KarmaTier {
+  verified,
+  established,
+  newcomer,
+  suspicious,
+  diamond;
+  
+  String get displayName {
+    switch (this) {
+      case KarmaTier.verified:
+        return 'Verified';
+      case KarmaTier.established:
+        return 'Established';
+      case KarmaTier.newcomer:
+        return 'Newcomer';
+      case KarmaTier.suspicious:
+        return 'Suspicious';
+      case KarmaTier.diamond:
+        return 'Diamond';
+    }
+  }
+  
+  Color get color {
+    switch (this) {
+      case KarmaTier.verified:
+        return AppColors.karmaVerified;
+      case KarmaTier.established:
+        return AppColors.karmaEstablished;
+      case KarmaTier.newcomer:
+        return AppColors.karmaNewcomer;
+      case KarmaTier.suspicious:
+        return AppColors.karmaSuspicious;
+      case KarmaTier.diamond:
+        return AppColors.nexusBlue; // Base para gradiente
+    }
+  }
+  
+  String get description {
+    switch (this) {
+      case KarmaTier.verified:
+        return 'Trusted member with verified identity';
+      case KarmaTier.established:
+        return 'Active contributor to the community';
+      case KarmaTier.newcomer:
+        return 'Welcome to Nexus! Build your reputation';
+      case KarmaTier.suspicious:
+        return 'Account flagged for review';
+      case KarmaTier.diamond:
+        return 'Elite member - Top 1% of the network';
+    }
+  }
+  
+  int get minScore {
+    switch (this) {
+      case KarmaTier.diamond:
+        return 10000;
+      case KarmaTier.verified:
+        return 5000;
+      case KarmaTier.established:
+        return 1000;
+      case KarmaTier.newcomer:
+        return 0;
+      case KarmaTier.suspicious:
+        return -999999;
+    }
+  }
+}
+
+@freezed
+class KarmaBreakdownEntity with _$KarmaBreakdownEntity {
+  const factory KarmaBreakdownEntity({
+    required String category, // 'posts', 'interactions', 'trust', etc
+    required int points,
+    required String description,
+  }) = _KarmaBreakdownEntity;
+}
+```
+
+### ProfileEntity (lib/features/profile/domain/entities/profile_entity.dart)
+
+```dart
+@freezed
+class ProfileEntity with _$ProfileEntity {
+  const factory ProfileEntity({
+    required String userId,
+    String? bio,
+    String? avatarUrl,
+    String? coverUrl,
+    String? location,
+    String? website,
+    @Default([]) List<String> interests,
+    @Default({}) Map<String, dynamic> socialLinks,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    @Default(0) int followersCount,
+    @Default(0) int followingCount,
+    @Default(0) int postsCount,
+  }) = _ProfileEntity;
+  
+  const ProfileEntity._();
+  
+  bool get hasAvatar => avatarUrl != null && avatarUrl!.isNotEmpty;
+  bool get hasCover => coverUrl != null && coverUrl!.isNotEmpty;
+  bool get hasBio => bio != null && bio!.isNotEmpty;
+}
+```
+
+---
+
+## 5.4 Chat Module - Entities
+
+### MessageEntity (lib/features/chat/domain/entities/message_entity.dart)
+
+```dart
+@freezed
+class MessageEntity with _$MessageEntity {
+  const factory MessageEntity({
+    required String id,
+    required String senderId,
+    required String recipientId, // User ID o Mentor ID
+    required String content,
+    required MessageType type,
+    Map<String, dynamic>? metadata, // Para attachments, voice, etc
+    required DateTime createdAt,
+    @Default(false) bool isRead,
+    @Default(false) bool isSent, // Estado de envío
+  }) = _MessageEntity;
+  
+  const MessageEntity._();
+  
+  bool get isFromMe => senderId == 'current_user_id'; // Se reemplaza en runtime
+  bool get hasMetadata => metadata != null && metadata!.isNotEmpty;
+}
+
+enum MessageType {
+  text,
+  voice,
+  image,
+  system; // Para notificaciones del sistema
+  
+  String get displayName {
+    switch (this) {
+      case MessageType.text:
+        return 'Text';
+      case MessageType.voice:
+        return 'Voice Message';
+      case MessageType.image:
+        return 'Image';
+      case MessageType.system:
+        return 'System';
+    }
+  }
+}
+```
+
+### MentorEntity (lib/features/chat/domain/entities/mentor_entity.dart)
+
+```dart
+@freezed
+class MentorEntity with _$MentorEntity {
+  const factory MentorEntity({
+    required String id,
+    required String name,
+    required String description,
+    required String avatarUrl,
+    required MentorType type,
+    @Default([]) List<String> specialties,
+    @Default(true) bool isAvailable,
+  }) = _MentorEntity;
+  
+  const MentorEntity._();
+  
+  Color get accentColor {
+    switch (type) {
+      case MentorType.echo:
+        return AppColors.nexusBlue;
+      case MentorType.drLuma:
+        return AppColors.cyberPurple;
+      case MentorType.cipher:
+        return AppColors.plasmaGreen;
+      case MentorType.aurora:
+        return AppColors.holoRose;
+    }
+  }
+}
+
+enum MentorType {
+  echo,
+  drLuma,
+  cipher,
+  aurora;
+  
+  String get displayName {
+    switch (this) {
+      case MentorType.echo:
+        return 'The Echo';
+      case MentorType.drLuma:
+        return 'Dr. Luma';
+      case MentorType.cipher:
+        return 'Cipher';
+      case MentorType.aurora:
+        return 'Aurora';
+    }
+  }
+  
+  String get tagline {
+    switch (this) {
+      case MentorType.echo:
+        return 'Your Digital Twin';
+      case MentorType.drLuma:
+        return 'Emotional Intelligence';
+      case MentorType.cipher:
+        return 'Data & Privacy Expert';
+      case MentorType.aurora:
+        return 'Creative Catalyst';
+    }
+  }
+}
+```
+
+---
+
+## 5.5 Notifications Module - Entity
+
+### NotificationEntity (lib/features/notifications/domain/entities/notification_entity.dart)
+
+```dart
+@freezed
+class NotificationEntity with _$NotificationEntity {
+  const factory NotificationEntity({
+    required String id,
+    required String userId,
+    required String recipientId,
+    required String senderId,
+    required NotificationType type,
+    required String content,
+    String? relatedId, // ID genérico
+    String? postId, // ID específico para posts
+    required bool read,
+    required DateTime createdAt,
+    String? senderUsername,
+    String? senderAvatarUrl,
+  }) = _NotificationEntity;
+  
+  const NotificationEntity._();
+  
+  IconData get icon {
+    switch (type) {
+      case NotificationType.follow:
+        return Icons.person_add;
+      case NotificationType.like:
+        return Icons.favorite;
+      case NotificationType.comment:
+        return Icons.comment;
+      case NotificationType.mention:
+        return Icons.alternate_email;
+      case NotificationType.karmaUpdate:
+        return Icons.stars;
+      case NotificationType.dreamInvite:
+        return Icons.auto_awesome;
+    }
+  }
+  
+  Color get accentColor {
+    switch (type) {
+      case NotificationType.follow:
+        return AppColors.nexusBlue;
+      case NotificationType.like:
+        return AppColors.holoRose;
+      case NotificationType.comment:
+        return AppColors.cyberPurple;
+      case NotificationType.mention:
+        return AppColors.electricYellow;
+      case NotificationType.karmaUpdate:
+        return AppColors.karmaVerified;
+      case NotificationType.dreamInvite:
+        return AppColors.plasmaGreen;
+    }
+  }
+}
+
+enum NotificationType {
+  follow,
+  like,
+  comment,
+  mention,
+  karmaUpdate,
+  dreamInvite;
+}
+```
+
+---
+
+## 5.6 Vibes Module - Entity
+
+### VibesEntity (lib/features/vibes/domain/entities/vibes_entity.dart)
+
+```dart
+@freezed
+class VibesEntity with _$VibesEntity {
+  const factory VibesEntity({
+    required double vibeScore, // 0.0 - 1.0
+    required Map<String, double> topEmotions, // {'joy': 0.8, 'calm': 0.6}
+    required Map<String, int> sentimentDistribution, // {'positive': 45, 'neutral': 30}
+    required DateTime timestamp,
+    String? dominantEmotion,
+  }) = _VibesEntity;
+  
+  const VibesEntity._();
+  
+  String get vibeScorePercentage => '${(vibeScore * 100).toInt()}%';
+  
+  Color get vibeColor {
+    if (vibeScore >= 0.7) return AppColors.successGlow;
+    if (vibeScore >= 0.4) return AppColors.warningPulse;
+    return AppColors.errorFlare;
+  }
+  
+  String get vibeDescription {
+    if (vibeScore >= 0.8) return 'Excellent';
+    if (vibeScore >= 0.6) return 'Good';
+    if (vibeScore >= 0.4) return 'Neutral';
+    if (vibeScore >= 0.2) return 'Low';
+    return 'Critical';
+  }
+}
+```
+
+---
+
+## 5.7 Reality Layers Module - Entity
+
+### GeoPostEntity (lib/features/reality_layers/domain/entities/geo_post_entity.dart)
+
+```dart
+@freezed
+class GeoPostEntity with _$GeoPostEntity {
+  const factory GeoPostEntity({
+    required String id,
+    required String content,
+    required GeoLocationEntity geolocation,
+    @Default([]) List<String> mediaUrls,
+    Map<String, dynamic>? arMetadata,
+    required String userId,
+    required String username,
+    String? userAvatarUrl,
+    required DateTime createdAt,
+    @Default(0) double distanceFromUser, // En metros (calculado localmente)
+  }) = _GeoPostEntity;
+  
+  const GeoPostEntity._();
+  
+  String get distanceFormatted {
+    if (distanceFromUser < 1000) {
+      return '${distanceFromUser.toInt()}m away';
+    }
+    return '${(distanceFromUser / 1000).toStringAsFixed(1)}km away';
+  }
+  
+  bool get isNearby => distanceFromUser < 100; // Menos de 100m
+}
+```
+
+---
+
+## 5.8 Collective Dreams Module - Entity
+
+### DreamEntity (lib/features/collective_dreams/domain/entities/dream_entity.dart)
+
+```dart
+@freezed
+class DreamEntity with _$DreamEntity {
+  const factory DreamEntity({
+    required String id,
+    required String title,
+    required String currentNarrative,
+    String? imageUrl, // Generada por IA (Fase 2)
+    required String creatorId,
+    @Default([]) List<String> participantIds,
+    @Default([]) List<DreamContributionEntity> contributions,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    @Default(false) bool isActive,
+    @Default(0) int viewCount,
+  }) = _DreamEntity;
+  
+  const DreamEntity._();
+  
+  int get participantCount => participantIds.length;
+  int get contributionCount => contributions.length;
+  bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
+}
+
+@freezed
+class DreamContributionEntity with _$DreamContributionEntity {
+  const factory DreamContributionEntity({
+    required String id,
+    required String dreamId,
+    required String userId,
+    required String username,
+    required String content,
+    required DateTime createdAt,
+  }) = _DreamContributionEntity;
+}
+```
+
+---
+
+# 6. ðŸ§  ESTRATEGIA DE ESTADO RIVERPOD
+
+## 6.1 Providers Globales (KeepAlive - No se destruyen)
+
+### AuthController (lib/features/auth/presentation/providers/auth_controller.dart)
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../domain/entities/user_entity.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../../core/storage/secure_storage_service.dart';
+
+part 'auth_controller.g.dart';
+
+@Riverpod(keepAlive: true)
+class AuthController extends _$AuthController {
+  @override
+  Future<UserEntity?> build() async {
+    // Intentar recuperar usuario del token almacenado
+    final token = await ref.read(secureStorageServiceProvider).getToken();
+    
+    if (token == null) return null;
+    
+    // Validar token con el backend
+    try {
+      final user = await ref.read(authRepositoryProvider).getCurrentUser();
+      
+      // Conectar socket con el token
+      ref.read(socketServiceProvider).connect(token);
+      
+      return user;
+    } catch (e) {
+      // Token inválido, limpiar storage
+      await ref.read(secureStorageServiceProvider).deleteToken();
+      return null;
+    }
+  }
+  
+  Future<void> login(String email, String password) async {
+    state = const AsyncLoading();
+    
+    state = await AsyncValue.guard(() async {
+      final authResponse = await ref.read(authRepositoryProvider).login(
+        email,
+        password,
+      );
+      
+      // Guardar token
+      await ref.read(secureStorageServiceProvider).saveToken(
+        authResponse.token,
+      );
+      
+      // Conectar socket
+      ref.read(socketServiceProvider).connect(authResponse.token);
+      
+      return authResponse.user;
+    });
+  }
+  
+  Future<void> register({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
+    
+    state = await AsyncValue.guard(() async {
+      final authResponse = await ref.read(authRepositoryProvider).register(
+        username: username,
+        email: email,
+        password: password,
+      );
+      
+      await ref.read(secureStorageServiceProvider).saveToken(
+        authResponse.token,
+      );
+      
+      ref.read(socketServiceProvider).connect(authResponse.token);
+      
+      return authResponse.user;
+    });
+  }
+  
+  Future<void> logout() async {
+    // Desconectar socket
+    ref.read(socketServiceProvider).disconnect();
+    
+    // Borrar token
+    await ref.read(secureStorageServiceProvider).deleteToken();
+    
+    // Limpiar estado
+    state = const AsyncData(null);
+    
+    // Invalidar todos los providers dependientes
+    ref.invalidate(feedControllerProvider);
+    ref.invalidate(profileControllerProvider);
+    ref.invalidate(notificationControllerProvider);
+  }
+  
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? bio,
+  }) async {
+    final currentUser = state.value;
+    if (currentUser == null) return;
+    
+    state = const AsyncLoading();
+    
+    state = await AsyncValue.guard(() async {
+      final updatedUser = await ref.read(authRepositoryProvider).updateUser(
+        userId: currentUser.id,
+        firstName: firstName,
+        lastName: lastName,
+      );
+      
+      return updatedUser;
+    });
+  }
+}
+```
+
+---
+
+### SocketService Provider (lib/features/chat/presentation/providers/socket_service_provider.dart)
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../../../core/constants/app_constants.dart';
+
+part 'socket_service_provider.g.dart';
+
+@Riverpod(keepAlive: true)
+SocketService socketService(SocketServiceRef ref) {
+  final service = SocketService(ref);
+  
+  // Cleanup al dispose
+  ref.onDispose(() {
+    service.disconnect();
+  });
+  
+  return service;
+}
+
+class SocketService {
+  final Ref _ref;
+  IO.Socket? _socket;
+  
+  SocketService(this._ref);
+  
+  void connect(String token) {
+    if (_socket != null && _socket!.connected) return;
+    
+    _socket = IO.io(
+      AppConstants.apiBaseUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .setAuth({'token': token})
+          .disableAutoConnect()
+          .build(),
+    );
+    
+    _socket!.connect();
+    
+    _socket!.onConnect((_) {
+      print('✅ [Socket] Connected');
+      _setupListeners();
+    });
+    
+    _socket!.onConnectError((data) {
+      print('❌ [Socket] Connection Error: $data');
+    });
+    
+    _socket!.onDisconnect((_) {
+      print('🔌 [Socket] Disconnected');
+    });
+  }
+  
+  void _setupListeners() {
+    // Notificación nueva
+    _socket!.on('notification:new', (data) {
+      print('🔔 [Socket] Nueva notificación: $data');
+      _ref.read(notificationControllerProvider.notifier).addNotification(data);
+    });
+    
+    // Actualización de Karma
+    _socket!.on('karma:updated', (data) {
+      print('⭐ [Socket] Karma actualizado: $data');
+      _ref.invalidate(karmaControllerProvider);
+    });
+    
+    // Nuevo mensaje (Chat)
+    _socket!.on('message:new', (data) {
+      print('💬 [Socket] Nuevo mensaje: $data');
+      // TODO: Actualizar chat controller correspondiente
+    });
+    
+    // Dream actualizado
+    _socket!.on('dream:updated', (data) {
+      print('🌙 [Socket] Dream actualizado: $data');
+      // TODO: Invalidar dream controller
+    });
+    
+    // Usuario online/offline
+    _socket!.on('user:online', (data) {
+      print('🟢 [Socket] Usuario online: $data');
+    });
+    
+    _socket!.on('user:offline', (data) {
+      print('⚪ [Socket] Usuario offline: $data');
+    });
+  }
+  
+  void disconnect() {
+    _socket?.disconnect();
+    _socket = null;
+  }
+  
+  void emit(String event, dynamic data) {
+    if (_socket == null || !_socket!.connected) {
+      print('⚠️ [Socket] Cannot emit - not connected');
+      return;
+    }
+    _socket!.emit(event, data);
+  }
+  
+  bool get isConnected => _socket != null && _socket!.connected;
+}
+```
+
+---
+
+### Location Controller (lib/features/reality_layers/presentation/providers/location_controller.dart)
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:geolocator/geolocator.dart';
+
+part 'location_controller.g.dart';
+
+@Riverpod(keepAlive: true)
+class LocationController extends _$LocationController {
+  @override
+  Stream<Position> build() {
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10, // Actualizar cada 10 metros
+      ),
+    );
+  }
+  
+  Future<bool> requestPermission() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return false;
+    }
+    
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return false;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  Future<Position?> getCurrentPosition() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      print('Error getting position: $e');
+      return null;
+    }
+  }
+}
+
+// Provider derivado para la posición actual (no stream)
+@riverpod
+Future<Position?> currentPosition(CurrentPositionRef ref) async {
+  return await ref.read(locationControllerProvider.notifier).getCurrentPosition();
+}
+```
+
+---
+
+## 6.2 Providers Efímeros (AutoDispose - Se destruyen al salir)
+
+### FeedController (lib/features/feed/presentation/providers/feed_controller.dart)
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../domain/entities/post_entity.dart';
+import '../../domain/repositories/feed_repository.dart';
+
+part 'feed_controller.g.dart';
+
+@riverpod
+class FeedController extends _$FeedController {
+  int _currentPage = 1;
+  static const _pageSize = 20;
+  bool _hasMore = true;
+  
+  @override
+  Future<List<PostEntity>> build() async {
+    // Intentar cargar del caché local primero
+    final cachedPosts = await ref.read(feedRepositoryProvider).getCachedFeed();
+    
+    if (cachedPosts.isNotEmpty) {
+      // Devolver caché inmediatamente
+      state = AsyncData(cachedPosts);
+      
+      // Refrescar en background
+      _refreshFeed();
+      
+      return cachedPosts;
+    }
+    
+    // Si no hay caché, cargar desde API
+    return _loadFeed();
+  }
+  
+  Future<List<PostEntity>> _loadFeed() async {
+    final posts = await ref.read(feedRepositoryProvider).getFeed(
+      page: _currentPage,
+      limit: _pageSize,
+    );
+    
+    _hasMore = posts.length == _pageSize;
+    
+    // Guardar en caché
+    await ref.read(feedRepositoryProvider).cacheFeed(posts);
+    
+    return posts;
+  }
+  
+  Future<void> _refreshFeed() async {
+    try {
+      final freshPosts = await ref.read(feedRepositoryProvider).getFeed(
+        page: 1,
+        limit: _pageSize,
+      );
+      
+      await ref.read(feedRepositoryProvider).cacheFeed(freshPosts);
+      
+      state = AsyncData(freshPosts);
+      _currentPage = 1;
+      _hasMore = freshPosts.length == _pageSize;
+    } catch (e) {
+      // No actualizar estado si falla el refresh
+      print('Error refreshing feed: $e');
+    }
+  }
+  
+  Future<void> loadMore() async {
+    if (!_hasMore || state.isLoading) return;
+    
+    final currentPosts = state.value ?? [];
+    if (currentPosts.isEmpty) return;
+    
+    _currentPage++;
+    
+    try {
+      final newPosts = await ref.read(feedRepositoryProvider).getFeed(
+        page: _currentPage,
+        limit: _pageSize,
+      );
+      
+      _hasMore = newPosts.length == _pageSize;
+      
+      state = AsyncData([...currentPosts, ...newPosts]);
+    } catch (e) {
+      _currentPage--; // Revertir si falla
+      rethrow;
+    }
+  }
+  
+  Future<void> refresh() async {
+    _currentPage = 1;
+    _hasMore = true;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _loadFeed());
+  }
+  
+  void updatePostLocally(String postId, PostEntity Function(PostEntity) update) {
+    state = state.whenData((posts) {
+      return posts.map((post) {
+        if (post.id == postId) {
+          return update(post);
+        }
+        return post;
+      }).toList();
+    });
+  }
+  
+  void removePostLocally(String postId) {
+    state = state.whenData((posts) {
+      return posts.where((post) => post.id != postId).toList();
+    });
+  }
+}
+```
+
+---
+
+### PostInteractionController (lib/features/feed/presentation/providers/post_interaction_controller.dart)
+
+```dart
+@riverpod
+class PostInteractionController extends _$PostInteractionController {
+  @override
+  FutureOr<void> build() {}
+  
+  Future<void> likePost(String postId) async {
+    // Optimistic UI Update
+    ref.read(feedControllerProvider.notifier).updatePostLocally(
+      postId,
+      (post) => post.copyWith(
+        isLiked: true,
+        likeCount: post.likeCount + 1,
+      ),
+    );
+    
+    // Haptic feedback
+    HapticFeedback.lightImpact();
+    
+    // Request al backend
+    try {
+      await ref.read(feedRepositoryProvider).likePost(postId);
+    } catch (e) {
+      // Revertir cambio optimista
+      ref.read(feedControllerProvider.notifier).updatePostLocally(
+        postId,
+        (post) => post.copyWith(
+          isLiked: false,
+          likeCount: post.likeCount - 1,
+        ),
+      );
+      
+      // Mostrar error
+      ref.read(errorHandlerProvider).showError(e);
+    }
+  }
+  
+  Future<void> unlikePost(String postId) async {
+    // Optimistic UI
+    ref.read(feedControllerProvider.notifier).update
+PostLocally(
+      postId,
+      (post) => post.copyWith(
+        isLiked: false,
+        likeCount: post.likeCount - 1,
+      ),
+    );
+    
+    HapticFeedback.lightImpact();
+    
+    try {
+      await ref.read(feedRepositoryProvider).unlikePost(postId);
+    } catch (e) {
+      // Revertir
+      ref.read(feedControllerProvider.notifier).updatePostLocally(
+        postId,
+        (post) => post.copyWith(
+          isLiked: true,
+          likeCount: post.likeCount + 1,
+        ),
+      );
+      
+      ref.read(errorHandlerProvider).showError(e);
+    }
+  }
+  
+  Future<void> deletePost(String postId) async {
+    state = const AsyncLoading();
+    
+    state = await AsyncValue.guard(() async {
+      await ref.read(feedRepositoryProvider).deletePost(postId);
+      
+      // Remover del feed local
+      ref.read(feedControllerProvider.notifier).removePostLocally(postId);
+    });
+  }
+  
+  Future<void> sharePost(String postId) async {
+    // TODO: Implementar share logic
+    HapticFeedback.mediumImpact();
+  }
+  
+  Future<void> bookmarkPost(String postId) async {
+    // Optimistic UI
+    ref.read(feedControllerProvider.notifier).updatePostLocally(
+      postId,
+      (post) => post.copyWith(isBookmarked: true),
+    );
+    
+    try {
+      await ref.read(feedRepositoryProvider).bookmarkPost(postId);
+    } catch (e) {
+      // Revertir
+      ref.read(feedControllerProvider.notifier).updatePostLocally(
+        postId,
+        (post) => post.copyWith(isBookmarked: false),
+      );
+      
+      ref.read(errorHandlerProvider).showError(e);
+    }
+  }
+}
+```
+
+---
+
+### ProfileController (lib/features/profile/presentation/providers/profile_controller.dart)
+
+```dart
+@riverpod
+class ProfileController extends _$ProfileController {
+  @override
+  Future<ProfileEntity> build(String userId) async {
+    // Cargar perfil del usuario
+    return await ref.read(profileRepositoryProvider).getProfile(userId);
+  }
+  
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      return await ref.read(profileRepositoryProvider).getProfile(userId);
+    });
+  }
+  
+  Future<void> updateProfile({
+    String? bio,
+    String? location,
+    String? website,
+    List<String>? interests,
+  }) async {
+    state = const AsyncLoading();
+    
+    state = await AsyncValue.guard(() async {
+      return await ref.read(profileRepositoryProvider).updateProfile(
+        userId: userId,
+        bio: bio,
+        location: location,
+        website: website,
+        interests: interests,
+      );
+    });
+  }
+  
+  Future<void> uploadAvatar(File imageFile) async {
+    try {
+      // Comprimir imagen
+      final compressedFile = await ref.read(imageCompressorProvider).compress(
+        imageFile,
+        maxWidth: 512,
+        maxHeight: 512,
+        quality: 85,
+      );
+      
+      // Subir a CDN
+      final avatarUrl = await ref.read(mediaUploadProvider).uploadImage(
+        compressedFile,
+      );
+      
+      // Actualizar perfil
+      await updateProfile(avatarUrl: avatarUrl);
+    } catch (e) {
+      ref.read(errorHandlerProvider).showError(e);
+    }
+  }
+}
+
+// Provider para Karma (endpoint separado)
+@riverpod
+Future<KarmaEntity> karmaController(KarmaControllerRef ref, String userId) async {
+  return await ref.read(karmaRepositoryProvider).getKarma(userId);
+}
+```
+
+---
+
+### ChatController (lib/features/chat/presentation/providers/chat_controller.dart)
+
+```dart
+@riverpod
+class ChatController extends _$ChatController {
+  @override
+  Future<List<MessageEntity>> build(String mentorId) async {
+    // Cargar historial del chat
+    final messages = await ref.read(chatRepositoryProvider).getMessages(
+      mentorId: mentorId,
+      limit: 50,
+    );
+    
+    // Escuchar nuevos mensajes por socket
+    _setupSocketListener();
+    
+    return messages.reversed.toList(); // Más recientes al final
+  }
+  
+  void _setupSocketListener() {
+    ref.read(socketServiceProvider).on('message:new', (data) {
+      final message = MessageEntity.fromJson(data);
+      
+      // Solo agregar si es del mentor correcto
+      if (message.senderId == mentorId || message.recipientId == mentorId) {
+        _addMessageToState(message);
+      }
+    });
+  }
+  
+  void _addMessageToState(MessageEntity message) {
+    state = state.whenData((messages) {
+      return [...messages, message];
+    });
+  }
+  
+  Future<void> sendMessage(String content) async {
+    // Crear mensaje temporal (optimistic UI)
+    final tempMessage = MessageEntity(
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: ref.read(authControllerProvider).value!.id,
+      recipientId: mentorId,
+      content: content,
+      type: MessageType.text,
+      createdAt: DateTime.now(),
+      isSent: false,
+    );
+    
+    // Agregar a la lista localmente
+    _addMessageToState(tempMessage);
+    
+    try {
+      // Enviar al backend
+      final sentMessage = await ref.read(chatRepositoryProvider).sendMessage(
+        mentorId: mentorId,
+        content: content,
+      );
+      
+      // Reemplazar mensaje temporal con el real
+      state = state.whenData((messages) {
+        return messages.map((msg) {
+          if (msg.id == tempMessage.id) {
+            return sentMessage.copyWith(isSent: true);
+          }
+          return msg;
+        }).toList();
+      });
+      
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      // Marcar como error
+      state = state.whenData((messages) {
+        return messages.map((msg) {
+          if (msg.id == tempMessage.id) {
+            return msg.copyWith(isSent: false);
+          }
+          return msg;
+        }).toList();
+      });
+      
+      ref.read(errorHandlerProvider).showError(e);
+    }
+  }
+  
+  Future<void> loadMoreMessages() async {
+    final currentMessages = state.value ?? [];
+    if (currentMessages.isEmpty) return;
+    
+    final oldestMessageTime = currentMessages.first.createdAt;
+    
+    try {
+      final olderMessages = await ref.read(chatRepositoryProvider).getMessages(
+        mentorId: mentorId,
+        before: oldestMessageTime,
+        limit: 20,
+      );
+      
+      state = AsyncData([...olderMessages.reversed.toList(), ...currentMessages]);
+    } catch (e) {
+      print('Error loading more messages: $e');
+    }
+  }
+}
+
+// Provider para indicador de "escribiendo..."
+@riverpod
+class TypingIndicator extends _$TypingIndicator {
+  @override
+  bool build(String mentorId) {
+    // Escuchar eventos de typing por socket
+    ref.read(socketServiceProvider).on('user:typing', (data) {
+      if (data['userId'] == mentorId) {
+        state = true;
+        
+        // Auto-ocultar después de 3 segundos
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            state = false;
+          }
+        });
+      }
+    });
+    
+    return false;
+  }
+}
+```
+
+---
+
+# 7. ðŸ—ºï¸ FLUJO DE NAVEGACIÃ"N GOROUTER
+
+## 7.1 Router Configuration (lib/app/router.dart)
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'router.g.dart';
+
+@riverpod
+GoRouter router(RouterRef ref) {
+  final authState = ref.watch(authControllerProvider);
+  
+  return GoRouter(
+    debugLogDiagnostics: true,
+    initialLocation: '/',
+    
+    // ========== REDIRECT LOGIC ==========
+    redirect: (context, state) {
+      final isLoggedIn = authState.value != null;
+      final isGoingToAuth = state.matchedLocation.startsWith('/auth');
+      
+      // Si no está logueado y no va a auth, redirigir a login
+      if (!isLoggedIn && !isGoingToAuth) {
+        return '/auth/login';
+      }
+      
+      // Si ya está logueado y va a auth, redirigir a home
+      if (isLoggedIn && isGoingToAuth) {
+        return '/';
+      }
+      
+      return null; // No redirect
+    },
+    
+    routes: [
+      // ========== AUTH ROUTES ==========
+      GoRoute(
+        path: '/auth',
+        redirect: (context, state) => '/auth/login',
+      ),
+      GoRoute(
+        path: '/auth/login',
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/auth/register',
+        name: 'register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth/biometric',
+        name: 'biometric',
+        builder: (context, state) => const BiometricSetupScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      
+      // ========== MAIN APP (Shell Route con Bottom Nav) ==========
+      ShellRoute(
+        builder: (context, state, child) {
+          return MainShell(
+            currentLocation: state.matchedLocation,
+            child: child,
+          );
+        },
+        routes: [
+          // Tab 1: Feed
+          GoRoute(
+            path: '/',
+            name: 'feed',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const FeedScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'post/:postId',
+                name: 'postDetail',
+                builder: (context, state) => PostDetailScreen(
+                  postId: state.pathParameters['postId']!,
+                ),
+              ),
+            ],
+          ),
+          
+          // Tab 2: Reality Layers
+          GoRoute(
+            path: '/reality',
+            name: 'reality',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const RealityMapScreen(),
+            ),
+          ),
+          
+          // Tab 3: Create (Modal bottom sheet)
+          GoRoute(
+            path: '/create',
+            name: 'create',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const CreatePostScreen(),
+            ),
+          ),
+          
+          // Tab 4: Chat
+          GoRoute(
+            path: '/chat',
+            name: 'chat',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ChatListScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'room/:mentorId',
+                name: 'chatRoom',
+                builder: (context, state) => ChatRoomScreen(
+                  mentorId: state.pathParameters['mentorId']!,
+                ),
+              ),
+              GoRoute(
+                path: 'mentor/:mentorId/info',
+                name: 'mentorInfo',
+                builder: (context, state) => MentorInfoScreen(
+                  mentorId: state.pathParameters['mentorId']!,
+                ),
+              ),
+            ],
+          ),
+          
+          // Tab 5: Profile
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ProfileScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                name: 'editProfile',
+                builder: (context, state) => const EditProfileScreen(),
+              ),
+              GoRoute(
+                path: 'karma',
+                name: 'karmaDetail',
+                builder: (context, state) => const KarmaDetailScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      
+      // ========== OTHER ROUTES (Fuera del Shell) ==========
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      
+      GoRoute(
+        path: '/search',
+        name: 'search',
+        builder: (context, state) => const SearchScreen(),
+      ),
+      
+      GoRoute(
+        path: '/vibes',
+        name: 'vibes',
+        builder: (context, state) => const VibesDashboardScreen(),
+      ),
+      
+      GoRoute(
+        path: '/dreams',
+        name: 'dreams',
+        builder: (context, state) => const DreamsListScreen(),
+        routes: [
+          GoRoute(
+            path: ':dreamId',
+            name: 'dreamRoom',
+            builder: (context, state) => DreamRoomScreen(
+              dreamId: state.pathParameters['dreamId']!,
+            ),
+          ),
+          GoRoute(
+            path: 'create',
+            name: 'createDream',
+            builder: (context, state) => const CreateDreamScreen(),
+          ),
+        ],
+      ),
+      
+      GoRoute(
+        path: '/verify/:dnaHash',
+        name: 'verifyContent',
+        builder: (context, state) => VerifyContentScreen(
+          dnaHash: state.pathParameters['dnaHash']!,
+        ),
+      ),
+      
+      GoRoute(
+        path: '/user/:userId',
+        name: 'userProfile',
+        builder: (context, state) => UserProfileScreen(
+          userId: state.pathParameters['userId']!,
+        ),
+      ),
+    ],
+    
+    // ========== ERROR HANDLER ==========
+    errorBuilder: (context, state) => ErrorScreen(
+      error: state.error.toString(),
+    ),
+  );
+}
+```
+
+---
+
+## 7.2 Bottom Navigation Shell (lib/app/widgets/main_shell.dart)
+
+```dart
+class MainShell extends StatelessWidget {
+  final Widget child;
+  final String currentLocation;
+  
+  const MainShell({
+    required this.child,
+    required this.currentLocation,
+    super.key,
+  });
+  
+  int _getCurrentIndex() {
+    if (currentLocation.startsWith('/reality')) return 1;
+    if (currentLocation.startsWith('/create')) return 2;
+    if (currentLocation.startsWith('/chat')) return 3;
+    if (currentLocation.startsWith('/profile')) return 4;
+    return 0; // Feed por defecto
+  }
+  
+  void _onItemTapped(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        context.go('/');
+        break;
+      case 1:
+        context.go('/reality');
+        break;
+      case 2:
+        context.go('/create');
+        break;
+      case 3:
+        context.go('/chat');
+        break;
+      case 4:
+        context.go('/profile');
+        break;
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      extendBody: true, // Para efecto glassmorphism
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: AppColors.glassLight,
+              width: 1,
+            ),
+          ),
+          color: AppColors.deepSpace.withOpacity(0.95),
+        ),
+        child: NavigationBar(
+          selectedIndex: _getCurrentIndex(),
+          onDestinationSelected: (index) => _onItemTapped(context, index),
+          backgroundColor: Colors.transparent,
+          indicatorColor: AppColors.nexusBlue.withOpacity(0.2),
+          height: AppDimensions.bottomNavHeight,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Feed',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.map_outlined),
+              selectedIcon: Icon(Icons.map),
+              label: 'Reality',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.add_circle_outline),
+              selectedIcon: Icon(Icons.add_circle),
+              label: 'Create',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline),
+              selectedIcon: Icon(Icons.chat_bubble),
+              label: 'Echo',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+---
+
