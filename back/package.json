@@ -1,0 +1,68 @@
+{
+  "name": "nexus-back",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+    "test": "jest --watchAll --verbose",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:seed": "sequelize-cli db:seed:all",
+    "db:seed:undo": "sequelize-cli db:seed:undo:all",
+    "db:reset": "sequelize-cli db:migrate:undo:all && sequelize-cli db:migrate && sequelize-cli db:seed:all",
+    "db:create": "sequelize-cli db:create"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iacastillo90/Nexus-Back.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iacastillo90/Nexus-Back/issues"
+  },
+  "homepage": "https://github.com/iacastillo90/Nexus-Back#readme",
+  "description": "",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "@pinecone-database/pinecone": "^8.2.0",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "envalid": "^8.2.0",
+    "express": "^5.1.0",
+    "form-data": "^4.0.5",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "mysql2": "^3.15.2",
+    "nodemailer": "^9.1.0",
+    "openai": "^6.9.1",
+    "redis": "^5.10.0",
+    "sequelize": "^6.37.7",
+    "socket.io": "^4.8.1",
+    "stripe": "^22.6.0",
+    "winston": "^3.18.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-node": "^11.1.0",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2",
+    "sequelize-cli": "^6.6.3",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.1.4"
+  }
+}
