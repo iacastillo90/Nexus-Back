@@ -1,0 +1,1 @@
+#!/bin/bash\n\n# Build Android App Bundle with Obfuscation for Google Play\n\necho "Cleaning project..."\nflutter clean\nflutter pub get\n\necho "Building App Bundle..."\nflutter build appbundle --release --obfuscate --split-debug-info=build/app/outputs/symbols\n\necho "Build completed! Find your AAB at build/app/outputs/bundle/release/app-release.aab"\n
