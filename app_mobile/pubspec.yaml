@@ -1,0 +1,162 @@
+name: nexus_mobile
+description: "Nexus - Consciencia Digital"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # ========== STATE MANAGEMENT ==========
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  
+  # ========== CODE GENERATION ==========
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  
+  # ========== NETWORKING ==========
+  dio: ^5.4.0
+  retrofit: ^4.1.0
+  pretty_dio_logger: ^1.3.1
+  
+  # ========== FIREBASE & NOTIFICATIONS ==========
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.9
+  firebase_crashlytics: ^3.4.9
+  flutter_local_notifications: ^17.0.0
+  
+  # ========== REAL-TIME ==========
+  socket_io_client: ^3.0.2
+  
+  # ========== STORAGE ==========
+  flutter_secure_storage: ^9.0.0
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+  
+  # ========== NAVIGATION ==========
+  go_router: ^13.0.0
+  
+  # ========== UI/UX ==========
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  lottie: ^3.0.0
+  fl_chart: ^1.1.1
+  flutter_svg: ^2.0.10
+  
+  # ========== MEDIA ==========
+  image_picker: ^1.0.7
+  image_cropper: ^8.0.0
+  video_player: ^2.8.2
+  audioplayers: ^5.2.1
+  flutter_image_compress: ^2.1.0
+  record: ^4.4.4
+  
+  # ========== MAPS & LOCATION ==========
+  mapbox_maps_flutter: ^2.12.0
+  geolocator: ^11.1.0
+  permission_handler: ^11.2.0
+  flutter_compass: ^0.8.0
+  vector_math: ^2.1.4
+  
+  # ========== AUTH & SECURITY ==========
+  local_auth: ^2.1.8
+  crypto: ^3.0.3
+  freerasp: ^6.1.1
+  
+  # ========== PAYMENTS & MONETIZATION ==========
+  purchases_flutter: ^7.3.1
+  flutter_stripe: ^10.1.1
+  
+  # ========== UTILS ==========
+  intl: ^0.19.0
+  timeago: ^3.6.1
+  url_launcher: ^6.2.4
+  share_plus: ^7.2.2
+  connectivity_plus: ^5.0.2
+  device_info_plus: ^9.1.2
+  package_info_plus: ^8.0.0
+  uuid: ^4.3.3
+  
+  # ========== LOGGING & DEBUG ==========
+  talker: ^4.0.0
+  talker_flutter: ^4.0.0
+  
+  # ========== ENV ==========
+  flutter_dotenv: ^5.1.0
+  
+  # ========== ICONS ==========
+  cupertino_icons: ^1.0.8
+  dartz: ^0.10.1
+  mobile_scanner: ^4.0.1
+  logger: ^2.6.2
+  google_generative_ai: ^0.4.7
+  qr_flutter: ^4.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # ========== CODE GENERATION ==========
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.4.0
+  freezed: ^2.4.7
+  json_serializable: ^6.7.1
+  retrofit_generator: ^8.1.0
+  isar_generator: ^3.1.0+1
+  
+  # ========== TESTING ==========
+  mocktail: ^1.0.3
+  
+  # ========== LINTING ==========
+  flutter_lints: ^3.0.1
+  very_good_analysis: ^5.1.0
+  
+  # ========== LAUNCHER & SPLASH ==========
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  
+  # Assets will be added as we create them
+  assets:
+    - assets/images/
+    - assets/fonts/
+    - assets/lottie/
+    - .env
+  
+  # Fonts will be configured when we add Rajdhani and Inter
+  # fonts:
+  #   - family: Rajdhani
+  #     fonts:
+  #       - asset: assets/fonts/Rajdhani-Bold.ttf
+  #         weight: 700
+  #       - asset: assets/fonts/Rajdhani-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Rajdhani-Regular.ttf
+  #         weight: 400
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #         weight: 400
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  min_sdk_android: 24
+
+flutter_native_splash:
+  color: "#050505"
+  image: "assets/images/splash_logo.png"
+  android_12:
+    color: "#050505"
+    image: "assets/images/splash_logo.png"
